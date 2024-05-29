@@ -12,10 +12,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.publicacionLibro = exports.putPublicacionE = exports.postPublicacionLibro = exports.getListaPublicacionLibro = exports.getListaPublicacionesLibre = exports.getListaPublicaciones = exports.postPublicacionLibre = void 0;
+exports.getListaLibroSelect = exports.publicacionLibro = exports.putPublicacionE = exports.postPublicacionLibro = exports.postPublicacionLibroContinuidad = exports.compartirPublicacion = exports.getListaPublicacionLibro = exports.getListaPublicacionesLibre = exports.getListaPublicaciones = exports.postPublicacionLibre = void 0;
 const IConnection_database_1 = __importDefault(require("../database/IConnection.database"));
 const postPublicacionLibre = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { id_autor, id_categoria, id_etiqueta, contenido } = req.body;
+    const { id_autor, id_etiqueta, contenido } = req.body;
     try {
         console.log(req.body);
         const pLE = yield IConnection_database_1.default.editorial.create({
@@ -30,7 +30,6 @@ const postPublicacionLibre = (req, res) => __awaiter(void 0, void 0, void 0, fun
                 id_etiqueta,
                 id_autor: parseInt(id_autor),
                 contenido,
-                id_categoria
             }
         });
         res.status(200).json({ msj: 'Publicacion libre publicado', id: pLL.id_pl_libre });
@@ -113,7 +112,8 @@ const getListaPublicaciones = (_req, res) => __awaiter(void 0, void 0, void 0, f
                             }
                         }
                     }
-                }, cap_pl_ln: {
+                },
+                cap_pl_ln: {
                     select: {
                         id_cap_pl: true,
                         id_editorial_pl: true,
@@ -145,11 +145,119 @@ const getListaPublicaciones = (_req, res) => __awaiter(void 0, void 0, void 0, f
                                     select: {
                                         nombre: true,
                                         id_genero: true,
+                                        categoria: {
+                                            select: {
+                                                descripcion: true
+                                            }
+                                        }
                                     }
                                 },
-                                categoria: {
+                            }
+                        }
+                    }
+                }, compartir: {
+                    select: {
+                        id_compartir: true,
+                        cotenido: true,
+                        compartir_datail: {
+                            select: {
+                                id_editorial: true,
+                                editorial: {
                                     select: {
-                                        descripcion: true
+                                        fecha_registro: true,
+                                        pl_libre: {
+                                            select: {
+                                                id_autor: true,
+                                                autor: {
+                                                    select: {
+                                                        foto_perfil: true,
+                                                        foto_portada: true,
+                                                        usuario: {
+                                                            select: {
+                                                                persona: {
+                                                                    select: {
+                                                                        nombre: true,
+                                                                        apellido_paterno: true
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                contenido: true,
+                                                categoria: {
+                                                    select: {
+                                                        descripcion: true
+                                                    }
+                                                },
+                                                etiqueta: {
+                                                    select: {
+                                                        nombre: true,
+                                                        id_etiqueta: true
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        cap_pl_ln: {
+                                            select: {
+                                                id_cap_pl: true,
+                                                id_editorial_pl: true,
+                                                contenido: true,
+                                                nombre_capitulo: true,
+                                                nro_capitulo: true,
+                                                pl_nl: {
+                                                    select: {
+                                                        id_autor: true,
+                                                        autor: {
+                                                            select: {
+                                                                foto_perfil: true,
+                                                                foto_portada: true,
+                                                                usuario: {
+                                                                    select: {
+                                                                        persona: {
+                                                                            select: {
+                                                                                nombre: true,
+                                                                                apellido_paterno: true
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        titulo: true,
+                                                        descripcion: true,
+                                                        genero: {
+                                                            select: {
+                                                                nombre: true,
+                                                                id_genero: true,
+                                                                categoria: {
+                                                                    select: {
+                                                                        descripcion: true
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        // id_editorial:true,
+                        id_autor: true,
+                        autor: {
+                            select: {
+                                foto_perfil: true,
+                                usuario: {
+                                    select: {
+                                        persona: {
+                                            select: {
+                                                nombre: true,
+                                                apellido_paterno: true
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -221,7 +329,7 @@ exports.getListaPublicacionesLibre = getListaPublicacionesLibre;
 const getListaPublicacionLibro = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id, idCapitulo } = req.params;
     try {
-        const publicaciones = yield IConnection_database_1.default.editorial.findMany({
+        const publicaciones = yield IConnection_database_1.default.editorial.findFirst({
             where: {
                 id_editorial_pl: parseInt(id),
                 cap_pl_ln: {
@@ -230,41 +338,10 @@ const getListaPublicacionLibro = (req, res) => __awaiter(void 0, void 0, void 0,
                     }
                 }
             },
-            orderBy: {
-                fecha_registro: 'desc'
-            },
             select: {
                 id_editorial_pl: true,
                 fecha_registro: true,
-                comentario: {
-                    where: {
-                        id_estado: 1,
-                    },
-                    orderBy: {
-                        id_comentario: 'desc'
-                    },
-                    select: {
-                        fecha_registro: true,
-                        contenido: true,
-                        id_autor: true,
-                        id_comentario: true,
-                        autor: {
-                            select: {
-                                foto_perfil: true,
-                                usuario: {
-                                    select: {
-                                        persona: {
-                                            select: {
-                                                nombre: true,
-                                                apellido_paterno: true
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }, cap_pl_ln: {
+                cap_pl_ln: {
                     select: {
                         id_cap_pl: true,
                         id_editorial_pl: true,
@@ -296,13 +373,13 @@ const getListaPublicacionLibro = (req, res) => __awaiter(void 0, void 0, void 0,
                                     select: {
                                         nombre: true,
                                         id_genero: true,
+                                        categoria: {
+                                            select: {
+                                                descripcion: true,
+                                            }
+                                        }
                                     }
                                 },
-                                categoria: {
-                                    select: {
-                                        descripcion: true
-                                    }
-                                }
                             }
                         }
                     }
@@ -316,6 +393,63 @@ const getListaPublicacionLibro = (req, res) => __awaiter(void 0, void 0, void 0,
     }
 });
 exports.getListaPublicacionLibro = getListaPublicacionLibro;
+const compartirPublicacion = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id_autor, id_categoria, contenido, id_editorial_pl } = req.body;
+    try {
+        const ediPl = yield IConnection_database_1.default.editorial.create({
+            data: {
+                fecha_registro: new Date(),
+                id_estado: 1,
+            }
+        });
+        const c = yield IConnection_database_1.default.compartir.create({
+            data: {
+                id_editorial: ediPl.id_editorial_pl,
+                id_autor: parseInt(id_autor),
+                id_categoria: parseInt(id_categoria),
+                cotenido: contenido
+            }
+        });
+        const cfD = yield IConnection_database_1.default.compartir_datail.create({
+            data: {
+                // : parseInt(id_editorial_pl),
+                id_compartir: c.id_compartir,
+                id_editorial: id_editorial_pl
+            }
+        });
+        res.status(200).json({ msj: 'Se compartio publicacion' });
+    }
+    catch (error) {
+        res.status(500).json({ msj: 'Error en servidor' });
+    }
+});
+exports.compartirPublicacion = compartirPublicacion;
+const postPublicacionLibroContinuidad = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id_pl_ln, contenido, nro_capitulo, nombre_capitulo } = req.body;
+    console.log(req.body);
+    try {
+        const plEdR = yield IConnection_database_1.default.editorial.create({
+            data: {
+                fecha_registro: new Date(),
+                id_estado: 1
+            }
+        });
+        const capituloR = yield IConnection_database_1.default.cap_pl_ln.create({
+            data: {
+                id_editorial_pl: plEdR.id_editorial_pl,
+                id_pl_ln: id_pl_ln,
+                nro_capitulo,
+                nombre_capitulo,
+                contenido
+            }
+        });
+        res.status(200).json({ msj: 'Se registro el libro' });
+    }
+    catch (error) {
+        res.status(500).json({ msj: 'Error en servidor' });
+    }
+});
+exports.postPublicacionLibroContinuidad = postPublicacionLibroContinuidad;
 const postPublicacionLibro = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id_autor, id_categoria, id_genero, contenido, descripcion, titulo, nro_capitulo, nombre_capitulo } = req.body;
     console.log(req.body);
@@ -328,7 +462,6 @@ const postPublicacionLibro = (req, res) => __awaiter(void 0, void 0, void 0, fun
         });
         const plLibroR = yield IConnection_database_1.default.pl_nl.create({
             data: {
-                id_categoria,
                 id_genero,
                 titulo,
                 id_autor: parseInt(id_autor),
@@ -410,13 +543,13 @@ const publicacionLibro = (req, res) => __awaiter(void 0, void 0, void 0, functio
                     select: {
                         nombre: true,
                         id_genero: true,
+                        categoria: {
+                            select: {
+                                descripcion: true
+                            }
+                        }
                     }
                 },
-                categoria: {
-                    select: {
-                        descripcion: true
-                    }
-                }
             }
         });
         res.status(200).json(vl);
@@ -426,3 +559,19 @@ const publicacionLibro = (req, res) => __awaiter(void 0, void 0, void 0, functio
     }
 });
 exports.publicacionLibro = publicacionLibro;
+const getListaLibroSelect = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const list = yield IConnection_database_1.default.pl_nl.findMany({
+            select: {
+                id_pl_ln: true,
+                titulo: true,
+                id_autor: true
+            }
+        });
+        res.status(200).json(list);
+    }
+    catch (error) {
+        res.status(500).json(error);
+    }
+});
+exports.getListaLibroSelect = getListaLibroSelect;

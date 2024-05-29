@@ -8,8 +8,7 @@ const express_1 = __importDefault(require("express"));
 const morgan_1 = __importDefault(require("morgan"));
 const cors_1 = __importDefault(require("cors"));
 const path_1 = __importDefault(require("path"));
-// import sharp from 'sharp'
-// import { etiqueta } from '../../dist/generate/client/index';
+const sharp_1 = __importDefault(require("sharp"));
 const base_routes_1 = require("./base.routes");
 class App {
     constructor() {
@@ -57,18 +56,18 @@ class App {
             res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
             next();
         });
-        // this.app.use(this.rutaApi.imagenes, (req, res, next)=>{
-        //     const rutaImagen = `${this.imagesFolder}${req.url}`
-        //     sharp(rutaImagen)
-        //     .resize(800)
-        //     .toBuffer((err,buffer)=>{
-        //         if(err){
-        //             return next()
-        //         }
-        //         res.setHeader('Content-Type', 'image/jpeg')
-        //         res.send(buffer)
-        //     })
-        // })
+        this.app.use(this.rutaApi.imagenes, (req, res, next) => {
+            const rutaImagen = `${this.imagesFolder}${req.url}`;
+            (0, sharp_1.default)(rutaImagen)
+                .resize(800)
+                .toBuffer((err, buffer) => {
+                if (err) {
+                    return next();
+                }
+                res.setHeader('Content-Type', 'image/jpeg');
+                res.send(buffer);
+            });
+        });
     }
     routes() {
         this.app.use(this.rutaApi.imagenes, express_1.default.static(this.imagesFolder));

@@ -61,7 +61,7 @@ const getActividades = (_req, res) => __awaiter(void 0, void 0, void 0, function
                     JOIN usuario AS us ON au.id_usuario = us.id_usuario
                     JOIN persona AS pe ON us.id_persona = pe.id_persona
                     ORDER BY usuarios_con_actividades.total_actividades DESC
-                    LIMIT 10;
+                    LIMIT 3;
 
                     `;
         res.status(200).json(actividasuarios);

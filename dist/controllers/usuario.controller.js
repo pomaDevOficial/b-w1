@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.postUsuarioLogin = exports.postUsuario = void 0;
+exports.cambiarAperiencia = exports.postUsuarioLogin = exports.postUsuario = void 0;
 const IConnection_database_1 = __importDefault(require("../database/IConnection.database"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
@@ -87,3 +87,26 @@ const postUsuarioLogin = (req, res) => __awaiter(void 0, void 0, void 0, functio
     }
 });
 exports.postUsuarioLogin = postUsuarioLogin;
+const cambiarAperiencia = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.body;
+    try {
+        const perfil = req.files['perfilimagen'][0];
+        const fondo = req.files['backgroundImage'][0];
+        const update = yield IConnection_database_1.default.autor.updateMany({
+            where: {
+                id_autor: parseInt(id)
+            },
+            data: {
+                foto_perfil: 'imagenes/' + perfil.filename,
+                foto_portada: 'imagenes/' + fondo.filename
+            }
+        });
+        console.log('creo');
+        console.log(update);
+        res.status(200).json({ msj: 'se actualizo la apariencia' });
+    }
+    catch (error) {
+        res.status(500).json({ msj: 'Error en el servidor' });
+    }
+});
+exports.cambiarAperiencia = cambiarAperiencia;

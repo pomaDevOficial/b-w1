@@ -15,3 +15,5 @@ routerPublicacion.put('/:id', publicacion_controllers_1.putPublicacionE);
 routerPublicacion.post('/compartir', publicacion_controllers_1.compartirPublicacion);
 routerPublicacion.get('/lista/libros', publicacion_controllers_1.getListaLibroSelect);
 routerPublicacion.get('/libro/pub', publicacion_controllers_1.publicacionLibro);
+routerPublicacion.get('/listaLibros/:id', publicacion_controllers_1.getListarCollecciones);
+routerPublicacion.delete('/libro/:id', publicacion_controllers_1.deletePLibro);

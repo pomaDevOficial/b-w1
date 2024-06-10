@@ -12,10 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cambiarAperiencia = exports.postUsuarioLogin = exports.postUsuario = void 0;
+exports.autorizacionRecuperacion = exports.recuperarContraseña = exports.cambiarAperiencia = exports.postUsuarioLogin = exports.postUsuario = void 0;
 const IConnection_database_1 = __importDefault(require("../database/IConnection.database"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const config_1 = require("../utils/config");
+const email_1 = require("../utils/email");
 const postUsuario = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { nombre, correo, password, apellido } = req.body;
@@ -110,3 +112,132 @@ const cambiarAperiencia = (req, res) => __awaiter(void 0, void 0, void 0, functi
     }
 });
 exports.cambiarAperiencia = cambiarAperiencia;
+const generarCodigoAleatorio = () => {
+    const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const longitud = 6; // Puedes ajustar la longitud del código según tus necesidades
+    let codigo = '';
+    for (let i = 0; i < longitud; i++) {
+        codigo += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+    }
+    return codigo;
+};
+const contarRegistrosPorFecha = (usuario, fecha) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log(usuario, fecha);
+    const fechaA = fecha.setHours(0, 0, 0);
+    const cantidad = yield IConnection_database_1.default.recuperacion.count({
+        where: {
+            id_usuario: usuario,
+            fecha_reg: {
+                gte: fecha.toISOString(),
+                lt: new Date().toISOString()
+            }
+        }
+    });
+    console.log(cantidad);
+    return cantidad;
+});
+const recuperarContraseña = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { correo } = req.body;
+    try {
+        const v = yield IConnection_database_1.default.usuario.findFirst({
+            where: {
+                correo
+            }
+        });
+        if (!v) {
+            res.status(401).json({
+                msj: 'no se encontro el correo registrado'
+            });
+        }
+        else {
+            const fechaActual = new Date();
+            console.log(fechaActual);
+            const cantidadRegistros = yield contarRegistrosPorFecha(v.id_usuario, fechaActual);
+            console.log(cantidadRegistros);
+            if (cantidadRegistros >= 3) {
+                return res.status(400).json({ msj: 'No puede realizar mas registros' });
+            }
+            const ultimoCodigo = yield IConnection_database_1.default.recuperacion.findFirst({
+                where: {
+                    id_usuario: v.id_usuario
+                },
+                orderBy: {
+                    fecha_reg: 'desc'
+                }
+            });
+            if (ultimoCodigo) {
+                if (ultimoCodigo.estado == 'creado') {
+                    yield IConnection_database_1.default.recuperacion.update({
+                        where: {
+                            id_recuperacion: ultimoCodigo.id_recuperacion
+                        },
+                        data: {
+                            estado: 'no usado'
+                        }
+                    });
+                }
+                else if (ultimoCodigo.estado == 'usado') {
+                    const nuevoCodigo = generarCodigoAleatorio();
+                    const r = yield IConnection_database_1.default.recuperacion.create({
+                        data: {
+                            id_usuario: v.id_usuario,
+                            codigo: nuevoCodigo,
+                            fecha_reg: new Date(),
+                            estado: 'creado'
+                        }
+                    });
+                    yield email_1.EmailService.enviarCorreo(correo, 'Recuperacion de cuenta', 'WRITEAD', config_1.local + '' + v.id_usuario, nuevoCodigo);
+                    return res.status(200).json({ msj: 'Verfique su correo', id: r.id_recuperacion });
+                }
+            }
+            const nuevoCodigo = generarCodigoAleatorio();
+            const t = yield IConnection_database_1.default.recuperacion.create({
+                data: {
+                    id_usuario: v.id_usuario,
+                    codigo: nuevoCodigo,
+                    fecha_reg: new Date(),
+                    estado: 'creado'
+                }
+            });
+            yield email_1.EmailService.enviarCorreo(correo, 'Recuperacion de cuenta', 'WRITEAD', config_1.local + '' + v.id_usuario, nuevoCodigo);
+            //    console.log(co)
+            res.status(200).json({ msj: 'Revisar el correo electronico', id: t.id_recuperacion });
+        }
+    }
+    catch (error) {
+        res.status(500).json({ msj: 'error en el servidor' });
+    }
+});
+exports.recuperarContraseña = recuperarContraseña;
+const autorizacionRecuperacion = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { codigo, recuperacion } = req.body;
+    try {
+        const r = yield IConnection_database_1.default.recuperacion.findUnique({
+            where: {
+                id_recuperacion: parseInt(recuperacion),
+                codigo: codigo,
+            }
+        });
+        if (!r) {
+            return res.status(401).json({ msj: 'Codigo no coincide' });
+        }
+        else {
+            if (r.codigo !== codigo) {
+                return res.status(401).json({ msj: 'Codigo no coincide' });
+            }
+            else {
+                const usuario = yield IConnection_database_1.default.usuario.findFirst({
+                    where: {
+                        id_usuario: r.id_usuario
+                    }
+                });
+                // const token = jsw.sign({username:usuario.correo},process.env.SECRET! || 'poma2088', {expiresIn:'1Hour'})
+                res.status(200).json({ msj: 'Datos correctos', id: usuario === null || usuario === void 0 ? void 0 : usuario.id_usuario });
+            }
+        }
+    }
+    catch (error) {
+        res.status(500).json({ msj: 'Error en el servicio' });
+    }
+});
+exports.autorizacionRecuperacion = autorizacionRecuperacion;

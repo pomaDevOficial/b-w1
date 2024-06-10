@@ -13,3 +13,8 @@ routerAutor.get('/', autor_controllers_1.getAutores);
 // routerAutor.post('/seguir/insert',postSeguidorInsert)
 routerAutor.put('/actualizarPerfil/:id', autor_controllers_1.putActualizarPerfil);
 routerAutor.get('/informacion/:id', autor_controllers_1.getInformacionAutor);
+routerAutor.get('/listaxAutor/:id', autor_controllers_1.getListaNumberPublicaciones);
+routerAutor.put('/ocupacion/:id', autor_controllers_1.putOcupacion);
+routerAutor.get('/notificaciones/:id', autor_controllers_1.getListaNotificacionzUsuario);
+routerAutor.put('/notificacionP/:id', autor_controllers_1.putVistaNotificacion);
+routerAutor.put('/descripcion/:id', autor_controllers_1.putDescripcion);

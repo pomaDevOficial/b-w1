@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DeleteComentario = exports.postComentario = void 0;
 const IConnection_database_1 = __importDefault(require("../database/IConnection.database"));
 const postComentario = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { id_autor, id_editorial, contenido } = req.body;
+    const { id_autor, id_editorial, contenido, tipo } = req.body;
     try {
         const cI = yield IConnection_database_1.default.comentario.create({
             data: {
@@ -26,9 +26,17 @@ const postComentario = (req, res) => __awaiter(void 0, void 0, void 0, function*
                 id_estado: 1,
             }
         });
+        yield IConnection_database_1.default.notificaciones.create({
+            data: {
+                id_tipo: parseInt(tipo),
+                id_autor: parseInt(id_autor),
+                estado: 'no visto',
+                id_editorial: parseInt(id_editorial),
+            }
+        });
         res.status(200).json({
-            ok: true,
-            comentario: cI
+            msj: 'Comentario registrado',
+            id: cI.id_comentario
         });
     }
     catch (error) {

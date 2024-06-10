@@ -11,4 +11,6 @@ const routerUsuario = (0, express_1.Router)();
 exports.routerUsuario = routerUsuario;
 routerUsuario.post('/', usuario_controller_1.postUsuario);
 routerUsuario.post('/login', usuario_controller_1.postUsuarioLogin);
+routerUsuario.post('/recuperar', usuario_controller_1.recuperarContraseña);
+routerUsuario.post('/autorizar', usuario_controller_1.autorizacionRecuperacion);
 routerUsuario.post('/upload/informacion', imagen_1.default.fields([{ name: 'perfilimagen', maxCount: 1 }, { name: 'backgroundImage', maxCount: 1 }]), usuario_controller_1.cambiarAperiencia);

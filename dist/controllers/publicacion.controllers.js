@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getListaLibroSelect = exports.publicacionLibro = exports.putPublicacionE = exports.postPublicacionLibro = exports.postPublicacionLibroContinuidad = exports.compartirPublicacion = exports.getListaPublicacionLibro = exports.getListaPublicacionesLibre = exports.getListaPublicaciones = exports.postPublicacionLibre = void 0;
+exports.getListarCollecciones = exports.deletePLibro = exports.getListaLibroSelect = exports.publicacionLibro = exports.putPublicacionE = exports.postPublicacionLibro = exports.postPublicacionLibroContinuidad = exports.compartirPublicacion = exports.getListaPublicacionLibro = exports.getListaPublicacionesLibre = exports.getListaPublicaciones = exports.postPublicacionLibre = void 0;
 const IConnection_database_1 = __importDefault(require("../database/IConnection.database"));
 const postPublicacionLibre = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id_autor, id_etiqueta, contenido } = req.body;
@@ -51,6 +51,29 @@ const getListaPublicaciones = (_req, res) => __awaiter(void 0, void 0, void 0, f
             select: {
                 id_editorial_pl: true,
                 fecha_registro: true,
+                reaccion: {
+                    where: {
+                        estado: 1
+                    },
+                    select: {
+                        estado: true,
+                        autor: {
+                            select: {
+                                foto_perfil: true,
+                                usuario: {
+                                    select: {
+                                        persona: {
+                                            select: {
+                                                nombre: true,
+                                                apellido_paterno: true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
                 comentario: {
                     where: {
                         id_estado: 1,
@@ -417,7 +440,7 @@ const compartirPublicacion = (req, res) => __awaiter(void 0, void 0, void 0, fun
                 id_editorial: id_editorial_pl
             }
         });
-        res.status(200).json({ msj: 'Se compartio publicacion' });
+        res.status(200).json({ msj: 'Se compartio publicacion', id: c.id_compartir });
     }
     catch (error) {
         res.status(500).json({ msj: 'Error en servidor' });
@@ -478,7 +501,7 @@ const postPublicacionLibro = (req, res) => __awaiter(void 0, void 0, void 0, fun
                 contenido
             }
         });
-        res.status(200).json({ msj: 'Se registro el libro' });
+        res.status(200).json({ msj: 'Se registro el libro', id: capituloR.id_cap_pl });
     }
     catch (error) {
         res.status(500).json({ msj: 'Error en servidor' });
@@ -564,8 +587,19 @@ const getListaLibroSelect = (req, res) => __awaiter(void 0, void 0, void 0, func
         const list = yield IConnection_database_1.default.pl_nl.findMany({
             select: {
                 id_pl_ln: true,
+                estado: true,
                 titulo: true,
-                id_autor: true
+                id_autor: true,
+                genero: {
+                    select: {
+                        categoria: {
+                            select: {
+                                descripcion: true
+                            }
+                        }
+                    }
+                },
+                cap_pl_ln: true
             }
         });
         res.status(200).json(list);
@@ -575,3 +609,47 @@ const getListaLibroSelect = (req, res) => __awaiter(void 0, void 0, void 0, func
     }
 });
 exports.getListaLibroSelect = getListaLibroSelect;
+const deletePLibro = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    try {
+        const pl = yield IConnection_database_1.default.pl_nl.updateMany({
+            where: {
+                id_pl_ln: parseInt(id)
+            }, data: {
+                estado: 'eliminado'
+            }
+        });
+        res.status(200).json({ msj: 'Se elimino el libro' });
+    }
+    catch (error) {
+        res.status(500).json({ msj: 'Error en servidor' });
+    }
+});
+exports.deletePLibro = deletePLibro;
+const getListarCollecciones = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    try {
+        const list = yield IConnection_database_1.default.pl_nl.findMany({
+            where: {
+                id_autor: parseInt(id)
+            }, select: {
+                titulo: true,
+                descripcion: true,
+                genero: {
+                    select: {
+                        categoria: {
+                            select: {
+                                descripcion: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        res.status(200).json(list);
+    }
+    catch (error) {
+        res.status(500).json({ msj: 'Error en el servidor' });
+    }
+});
+exports.getListarCollecciones = getListarCollecciones;

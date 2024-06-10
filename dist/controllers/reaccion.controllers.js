@@ -30,7 +30,8 @@ const getReacciones = (req, res) => __awaiter(void 0, void 0, void 0, function* 
 });
 exports.getReacciones = getReacciones;
 const postReacciones = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { id_autor, id_editorial } = req.body;
+    const { id_autor, id_editorial, tipo } = req.body;
+    console.log(tipo);
     try {
         const f = yield IConnection_database_1.default.reaccion.create({
             data: {
@@ -39,6 +40,15 @@ const postReacciones = (req, res) => __awaiter(void 0, void 0, void 0, function*
                 estado: 1
             }
         });
+        const noti = yield IConnection_database_1.default.notificaciones.create({
+            data: {
+                id_tipo: parseInt(tipo),
+                id_autor: parseInt(id_autor),
+                id_editorial: parseInt(id_editorial),
+                estado: 'no visto',
+            }
+        });
+        console.log(noti);
         res.status(200).json({ message: "Reaccion creada", id: f.id_reaccion });
     }
     catch (error) {

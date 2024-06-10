@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.putActualizarPerfil = exports.getInformacionAutor = exports.getAutores = void 0;
+exports.putVistaNotificacion = exports.getListaNotificacionzUsuario = exports.putDescripcion = exports.putOcupacion = exports.putActualizarPerfil = exports.getListaNumberPublicaciones = exports.getInformacionAutor = exports.getAutores = void 0;
 const IConnection_database_1 = __importDefault(require("../database/IConnection.database"));
 // import {PrismaClient} from '@prisma/client'
 // const connec = new PrismaClient()
@@ -207,13 +207,91 @@ const getInformacionAutor = (req, res) => __awaiter(void 0, void 0, void 0, func
             select: {
                 id_autor: true,
                 foto_perfil: true,
+                pl_libre: true,
+                pl_nl: true,
+                seguimiento: {
+                    select: {
+                        id_seguimiento_u: true,
+                        seguimiento_usuario: {
+                            select: {
+                                id_tipo_seguimiento: true,
+                                id_autor_seguido: true,
+                                autor: {
+                                    select: {
+                                        foto_perfil: true,
+                                        usuario: {
+                                            select: {
+                                                persona: {
+                                                    select: {
+                                                        nombre: true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                seguimiento_usuario: {
+                    select: {
+                        id_tipo_seguimiento: true,
+                        id_seguimiento_usuario: true,
+                        seguimiento: {
+                            select: {
+                                autor: {
+                                    select: {
+                                        foto_perfil: true,
+                                        usuario: {
+                                            select: {
+                                                persona: {
+                                                    select: {
+                                                        nombre: true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                // {
+                //     select:{
+                //         id_tipo_seguimiento:true,
+                //         id_autor_seguido:true,
+                //         autor:{
+                //             select:{
+                //                 foto_perfil:true,
+                //                 usuario:{
+                //                     select:{
+                //                         persona:{
+                //                             select:{
+                //                                 nombre:true
+                //                             }
+                //                         }
+                //                     }
+                //                 }
+                //             }
+                //         }
+                //     }
+                // },
                 foto_portada: true,
                 nick_name: true,
                 descripcion: true,
+                pais: {
+                    select: {
+                        nombre: true
+                    }
+                },
                 ocupacion: true,
                 usuario: {
                     select: {
                         id_usuario: true,
+                        correo: true,
+                        contrasenia: true,
                         persona: {
                             select: {
                                 nombre: true,
@@ -232,6 +310,80 @@ const getInformacionAutor = (req, res) => __awaiter(void 0, void 0, void 0, func
     }
 });
 exports.getInformacionAutor = getInformacionAutor;
+const getListaNumberPublicaciones = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    try {
+        const listPl = yield IConnection_database_1.default.pl_libre.findMany({
+            where: {
+                id_autor: parseInt(id)
+            }, select: {
+                id_editorial_pl: true,
+            }
+        });
+        console.log(listPl);
+        let valorcontadoL = 0;
+        for (let index = 0; index < listPl.length; index++) {
+            const element = listPl[index];
+            const listaEd = yield IConnection_database_1.default.editorial.findMany({
+                where: {
+                    id_editorial_pl: element.id_editorial_pl,
+                    id_estado: {
+                        not: 2
+                    }
+                }
+            });
+            valorcontadoL = valorcontadoL + listaEd.length;
+        }
+        const listPlN = yield IConnection_database_1.default.pl_nl.findMany({
+            where: {
+                id_autor: parseInt(id),
+            }, select: {
+                id_pl_ln: true,
+                estado: true
+            }
+        });
+        let valorContado = 0;
+        for (let index = 0; index < listPlN.length; index++) {
+            const element = listPlN[index];
+            if (element.estado != 'eliminado') {
+                const listaCap = yield IConnection_database_1.default.cap_pl_ln.findMany({
+                    where: {
+                        id_pl_ln: element.id_pl_ln
+                    }
+                });
+                valorContado = valorContado + listaCap.length;
+            }
+        }
+        const litComp = yield IConnection_database_1.default.compartir.findMany({
+            where: {
+                id_autor: parseInt(id)
+            }, select: {
+                id_autor: true,
+                id_editorial: true
+            }
+        });
+        let compE = 0;
+        for (let index = 0; index < litComp.length; index++) {
+            const element = litComp[index];
+            const listaEd = yield IConnection_database_1.default.editorial.findMany({
+                where: {
+                    id_editorial_pl: element.id_editorial,
+                    id_estado: {
+                        not: 2
+                    }
+                }
+            });
+            compE = compE + listaEd.length;
+        }
+        console.log(valorContado + listPlN.length);
+        const total = valorcontadoL + valorContado + compE;
+        res.status(200).json({ totalPublicaciones: total });
+    }
+    catch (error) {
+        res.status(500).json({ msj: 'Error del servidor' });
+    }
+});
+exports.getListaNumberPublicaciones = getListaNumberPublicaciones;
 const putActualizarPerfil = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
     const { ocupacion, descripcion } = req.body;
@@ -252,3 +404,98 @@ const putActualizarPerfil = (req, res) => __awaiter(void 0, void 0, void 0, func
     }
 });
 exports.putActualizarPerfil = putActualizarPerfil;
+const putOcupacion = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const { ocupacion } = req.body;
+    console.log(ocupacion);
+    try {
+        yield IConnection_database_1.default.autor.update({
+            where: {
+                id_autor: parseInt(id)
+            },
+            data: {
+                ocupacion: ocupacion
+            }
+        });
+        res.status(200).json({ msj: 'Actualizacion exitosa' });
+    }
+    catch (error) {
+        res.status(500).json({ msj: 'Error de servidor' });
+    }
+});
+exports.putOcupacion = putOcupacion;
+const putDescripcion = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const { descripcion } = req.body;
+    try {
+        yield IConnection_database_1.default.autor.update({
+            where: {
+                id_autor: parseInt(id)
+            },
+            data: {
+                descripcion: descripcion
+            }
+        });
+        res.status(200).json({ msj: 'Actualizacion exitosa' });
+    }
+    catch (error) {
+        res.status(500).json({ msj: 'Error de servidor' });
+    }
+});
+exports.putDescripcion = putDescripcion;
+const getListaNotificacionzUsuario = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    try {
+        const listNoti = yield IConnection_database_1.default.notificaciones.findMany({
+            where: {
+                id_autor: parseInt(id)
+            }, select: {
+                id_notificacion: true,
+                estado: true,
+                id_tipo: true,
+                autor: {
+                    select: {
+                        foto_perfil: true,
+                        usuario: {
+                            select: {
+                                persona: {
+                                    select: {
+                                        nombre: true,
+                                        apellido_paterno: true,
+                                        apellido_materno: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        res.status(200).json(listNoti);
+    }
+    catch (error) {
+        res.status(500).json({ msj: 'Error del servidor' });
+    }
+});
+exports.getListaNotificacionzUsuario = getListaNotificacionzUsuario;
+const putVistaNotificacion = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    console.log(id);
+    const { estado } = req.body;
+    console.log(estado);
+    try {
+        yield IConnection_database_1.default.notificaciones.update({
+            where: {
+                id_notificacion: parseInt(id)
+            },
+            data: {
+                estado
+            }
+        });
+        res.status(200).json({ msj: 'Notificacion leido' });
+    }
+    catch (error) {
+        res.status(500).json({ msj: 'Error del servido' });
+    }
+});
+exports.putVistaNotificacion = putVistaNotificacion;
